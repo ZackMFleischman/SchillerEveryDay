@@ -29,6 +29,7 @@ import java.text.*;
 // Debug Params
 boolean autoChoose=false;
 boolean onlyFirst=false;
+boolean dumpFonts=false;
 
 // Globals
 int fileIndex = 0;
@@ -58,7 +59,17 @@ PFont f;
 //
 void setup() {
     // Cache the font
-    f = createFont("Helvetica-Bold",16,true);
+    f = createFont("HelveticaNeueLTCom-Md",16,true);
+
+    // Dump all fonts and exit
+    if (dumpFonts) {
+        String[] fontList = PFont.list();
+        for (String fn : fontList) {
+            println(fn);
+        }
+        System.exit(0);
+    }
+
     
     // autoChoose == no gui
     if (autoChoose) {
@@ -404,7 +415,7 @@ void addImageDecorations(SchillerPic pic) {
 }
 
 // Draws the Black ellipsoids on the bottom
-int barHeight = 28;
+int barHeight = 30;
 void drawBlackBars(SchillerPic pic) {
     s.fill(0);
     fill(0);
@@ -417,10 +428,10 @@ void drawBlackBars(SchillerPic pic) {
     zRect(-20, display.height-barHeight, 140, barHeight, 100);
 
     // Lower right
-    zRect(display.width-107, display.height-barHeight, 190, barHeight, 100); // Days
+    zRect(display.width-103, display.height-barHeight, 190, barHeight, 100); // Days
 
     if (pic.picNumber > 365) {
-        zRect(display.width-104, display.height-(barHeight*2), 190, barHeight, 100); // Years
+        zRect(display.width-101, display.height-(barHeight*2), 190, barHeight, 100); // Years
     }
 }
 
@@ -429,19 +440,24 @@ void drawText(SchillerPic pic) {
     textFont(f,20);
     s.textFont(f,20*ratio);
 
+    int heightOffBottom = 8;
+
     // Date
     zFill(250);
     final SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-    zText(df.format(pic.dateTaken),9,display.height-6); 
+    zText(df.format(pic.dateTaken),9,display.height-heightOffBottom); 
 
     // Year and Days Labels
     zFill(150);
     if (pic.picNumber > 365) {
-        zText("Years:", display.width-98, display.height-barHeight-6);
+        zText("Years:", display.width-94, display.height-barHeight-heightOffBottom);
     }
-    zText("Days:", display.width-100, display.height-6);
+    zText("Days:", display.width-96, display.height-heightOffBottom);
 
     // Year and Days Numbers
+    textFont(f,17);
+    s.textFont(f,17*ratio);
+    int bottomOffset = 9;
     zFill(250);
     if (pic.picNumber > 365) {
         int displayYears = (((pic.picNumber-1) / 365));
@@ -449,17 +465,17 @@ void drawText(SchillerPic pic) {
         if (displayYears < 10) {
             sYears = "  ";
         }
-        zText(sYears + displayYears, display.width-29, display.height-barHeight-6); 
+        zText(sYears + displayYears, display.width-28, display.height-barHeight-bottomOffset); 
     }
     int displayNum = (((pic.picNumber-1) % 365) + 1);
     String sDays = "";
-    int daysOffset = 40;
+    int daysOffset = 38;
     if (displayNum < 10) {
         sDays = "    ";
     } else if (displayNum < 100) {
         sDays = "  ";
     }
-    zText(sDays + displayNum, display.width-daysOffset, display.height-6); 
+    zText(sDays + displayNum, display.width-daysOffset, display.height-bottomOffset); 
 }
 
 void zFill(int c) {
@@ -478,7 +494,7 @@ void drawNumberOutlines(SchillerPic pic) {
     int zStrokeWeight = 2;
     s.noFill();
     s.stroke(strokeColor);
-    s.strokeWeight(zStrokeWeight);
+    s.strokeWeight(zStrokeWeight*2);
     noFill();
     stroke(strokeColor);
     strokeWeight(zStrokeWeight);
