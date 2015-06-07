@@ -1,8 +1,13 @@
 //
-// schiller.pde
+// SchillerEveryDay.pde
 // author: Zack Fleischman
 //
-// This formats Schiller's Pic-a-day's into a finished image.
+// This formats Schiller's Pic-a-day's into a finished image
+// by adding the date, the day and the year in a label
+// on the bottom of the image.
+//
+// This program generates an interactive GUI to let Schiller
+// easily pick the folder for the input and output images.
 //
 
 import java.util.concurrent.TimeUnit;
@@ -21,7 +26,7 @@ import java.util.Calendar;
 import java.text.*;
 
 
-// Params
+// Debug Params
 boolean autoChoose=false;
 boolean onlyFirst=false;
 
@@ -37,13 +42,13 @@ PImage display;
 
 int displayWidth = 360;
 int displayHeight = 640;
-int ratio = 3;
+int ratio = 3; // Ratio of source image (which is to big to display) to the display image.
 
-String outputDirectory = "";
-
-ArrayList<SchillerPic> picsToProcess = new ArrayList<SchillerPic>();
-
+// Flag to reposition the display window on startup
 boolean setLocationOnStart = true;
+
+// Where all the pictures to process will be stored
+ArrayList<SchillerPic> picsToProcess = new ArrayList<SchillerPic>();
 
 // Font
 PFont f;
@@ -52,17 +57,20 @@ PFont f;
 // Program starts here.
 //
 void setup() {
-
+    // Cache the font
     f = createFont("Helvetica-Bold",16,true);
     
-
+    // autoChoose == no gui
     if (autoChoose) {
         setDefaultPaths();
     } else {
         createAndShowGui();
     }
 
+    // Set the initial size of the canvas.
     size(displayWidth, displayHeight);
+
+    // If we are in GUI mode, don't loop until the directories are chosen
     if (!autoChoose) {
         noLoop();
     }
@@ -81,9 +89,9 @@ void draw() {
     }
 
     if (processing) {
-
+        // If we haven't run out of pics to process yet...
         if ((!onlyFirst && fileIndex < picsToProcess.size()) || (onlyFirst && fileIndex == 0)) {
-
+            // Get the current pic to process
             SchillerPic currentPic = picsToProcess.get(fileIndex);
 
             // Load image
@@ -92,16 +100,20 @@ void draw() {
             display.resize(displayWidth, displayHeight);
             s = createGraphics(source.width, source.height);
 
-            // Show image
+            // Begin drawing to source image
             s.beginDraw();
+
+            // Start with the source image.
             s.image(source, 0, 0);
             image(display, 0, 0);
 
             // Process
             addImageDecorations(currentPic);
 
+            // Finish drawing to source image
             s.endDraw();
 
+            // Save the final image.
             String output = outputDir.getAbsolutePath() + "/" + currentPic.outputString;
             if (!autoChoose) {
                 progressLabel.setText("  Status: Processing pic " + numFilesWritten + "/" + picsToProcess.size() + "..."); 
@@ -109,13 +121,19 @@ void draw() {
             System.out.println("Saving File " + numFilesWritten++ + ": " + output);
             s.save(output);
 
+            // Update the file index so the next draw() will process the next image.
             fileIndex++;
 
+            // Don't loop if we are only processing the first image.
             if (onlyFirst) {
                 noLoop();
             }
         } else {
+            // Ran out of images to process. We're done!
             System.out.println("Done!");
+
+            // If we are in GUI mode, we're gonna reset everything 
+            // if they want to process pics again.
             if (!autoChoose) {
                 progressLabel.setText("  Status: Done!"); 
                 picsToProcess.clear();
@@ -126,14 +144,17 @@ void draw() {
                 outputBtn.setEnabled(true);
                 noLoop();
             } else {
+                // Not in Gui mode so just quit.
                 System.exit(0);
             }
         }
     } else {
+        // Not processing anything yet, so give focus to the GUI.
         controlFrame.requestFocus();
     }
 }
 
+// Quit on 'q'
 void keyPressed() {
     if (key == 'q') {
         System.exit(0);
@@ -143,6 +164,8 @@ void keyPressed() {
 
 ///////////////////////////
 
+// Called to actually start processing the directories.
+// The inputDir and outputDir should be populated by this point.
 File inputDir = null;
 File outputDir = null;
 void go() {
@@ -151,12 +174,13 @@ void go() {
         System.exit(1);
     }
 
+    // Disable buttons while we are processing.
     if (!autoChoose) {
         inputBtn.setEnabled(false);
         outputBtn.setEnabled(false);
     }
 
-    // Process the input files
+    // Populate the picsToProcess Array with all valid files
     File[] directoryListing = inputDir.listFiles();
     if (directoryListing != null) {
         for (File child : directoryListing) {
@@ -164,12 +188,14 @@ void go() {
         }
     }
 
+    // We've populated our pics Array, so start looping and processing.
     processing = true;
     if (!autoChoose) {
         loop();
     }
 }
 
+// Lots of GUI objects
 JButton inputBtn = new JButton("Choose Image Input Directory");
 JLabel inputLabel = new JLabel("  Input Dir: \"<None>\"");
 JButton outputBtn = new JButton("Choose Image Output Directory");
@@ -177,6 +203,8 @@ JLabel outputLabel = new JLabel("  Output Dir: \"<None>\"");
 JButton goBtn = new JButton("Run!");
 JLabel progressLabel = new JLabel("  Status: Choose input and output directories...");
 JFrame controlFrame = new JFrame("Schiller Every Day");
+
+// Builds the GUI
 void createAndShowGui() {
     goBtn.setEnabled(false);
 
@@ -245,14 +273,17 @@ void createAndShowGui() {
 }
 
 
+// Takes a file and if it conforms to the format for Schillers
+// project ("YYYYMMDD_*.jpg") then it will parse it and push
+// it onto our picsToProcess Array. 
 void processFile(File f) {
     String name = f.getName();
     String pattern = "(\\d\\d\\d\\d)(\\d\\d)(\\d\\d)_.*\\.jpg";
     Pattern r = Pattern.compile(pattern);
-
-    // Now create matcher object.
     final SimpleDateFormat df = new SimpleDateFormat( "yyyy-MM-dd" );
     Matcher m = r.matcher(name);
+
+    // If this file name matches the above pattern...
     if (m.find()) {
         String sdate = "" + m.group(1) + "-" + m.group(2) + "-" + m.group(3);
         try {
@@ -264,12 +295,14 @@ void processFile(File f) {
     } 
 }
 
+// Build the SchillerPic object and push it on the array
 void addNewFileToProcess(File f, Date dateTaken)
 {
     SchillerPic pic = new SchillerPic(f, dateTaken);
     picsToProcess.add(pic);
 }
 
+// Get the input directory.
 File getImageDirectory() {
     if (autoChoose) {
         return new File("/Users/JoeyMousepad/repos/SchillerEveryDay/before");
@@ -287,6 +320,7 @@ File getImageDirectory() {
     return chooser.getSelectedFile();
 }
 
+// Get the output directory
 File getOutputDirectory() {
     if (autoChoose) {
         return new File("/Users/JoeyMousepad/repos/SchillerEveryDay/after");
@@ -304,22 +338,26 @@ File getOutputDirectory() {
     return chooser.getSelectedFile();
 }
 
+// Set the input and output directories and start processing.
 void setDefaultPaths() {
     inputDir = getImageDirectory();
     outputDir = getOutputDirectory();
     go();
 }
 
+// Dump an error message.
 void error(String errorMessage) {
     infoBox(errorMessage, "Error!");
     exit();
 }
 
+// Dump an info message.
 void infoBox(String infoMessage, String titleBar)
 {
     JOptionPane.showMessageDialog(null, infoMessage, "InfoBox: " + titleBar, JOptionPane.INFORMATION_MESSAGE);
 }
 
+// SchillerPic class to store all relevant meta data for a file to process.
 public class SchillerPic {
     public File inputFile;
     public Date dateTaken;
@@ -332,6 +370,7 @@ public class SchillerPic {
         calcOutput();
     }
 
+    // Calculates which pic this is from Schiller's start date.
     private void calcNumber() {
         final String sdate = "2014-08-13"; // First picture date
         final SimpleDateFormat df = new SimpleDateFormat( "yyyy-MM-dd" );
@@ -345,6 +384,7 @@ public class SchillerPic {
         }
     }
 
+    // Calculates file name for the finished image.
     private void calcOutput() {
         final SimpleDateFormat df = new SimpleDateFormat("MM_dd_yyyy");
         outputString = "SchillerPicADay.Number_" + String.format("%05d", picNumber) + ".Date_" + df.format(dateTaken) + ".jpg";
@@ -363,6 +403,7 @@ void addImageDecorations(SchillerPic pic) {
     drawText(pic);
 }
 
+// Draws the Black ellipsoids on the bottom
 int barHeight = 28;
 void drawBlackBars(SchillerPic pic) {
     s.fill(0);
@@ -383,6 +424,7 @@ void drawBlackBars(SchillerPic pic) {
     }
 }
 
+// Draws the text over the black bars
 void drawText(SchillerPic pic) {
     textFont(f,20);
     s.textFont(f,20*ratio);
@@ -425,12 +467,12 @@ void zFill(int c) {
     s.fill(c);
 }
 
-
 void zText(String t, int w, int h) {
     text(t,w,h);
     s.text(t,w*ratio,h*ratio);
 }
 
+// Draws the square outlines for the numbers
 void drawNumberOutlines(SchillerPic pic) {
     float strokeColor = 135;
     int zStrokeWeight = 2;
